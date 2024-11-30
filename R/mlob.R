@@ -19,6 +19,16 @@
 #' comes into effect, and identifies the optimal number of items and groups to delete based on the punishment coefficient. If the amount of data deleted is more than defined by threshold
 #' (balancing.limit) then results should be interpreted with caution.
 #'
+#' @return A list containing the results of the regularized Bayesian estimation, which includes the model formula,dependent and context variables,and other relevant details from the analysis.
+#'
+#' @examples
+#' # Example usage with the iris dataset
+#'
+#' # View summary statistics (similar to summary of a linear model)
+#'
+#' mlob(Sepal.Length ~ Sepal.Width + Petal.Length, data = data, group = 'Species', conf.level = 0.01, jackknife = FALSE)
+#' summary(result)
+#'
 #' Summary of Coefficients:
 #'                     Estimate Std. Error Lower CI (99%) Upper CI (99%)   Z value   Pr(>|z|) Significance
 #' beta_b             0.4279681  0.7544766     -1.5154349       2.371371 0.5672384 0.57055223
@@ -31,15 +41,6 @@
 #'
 #'Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 #'
-#' @return A list containing the results of the regularized Bayesian estimation, which includes the model formula,dependent and context variables,and other relevant details from the analysis.
-#'
-#' @examples
-#' # Example usage with the iris dataset
-#'
-#'
-#' result <- mlob(Sepal.Length ~ Sepal.Width + Petal.Length, data = data, group = 'Species', conf.level = 0.01, jackknife = FALSE)
-#' # View summary statistics (similar to summary of a linear model)
-#' summary(result)
 #'
 #' @export
 mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, jackknife = FALSE, punish.coeff = 2, ...) {
