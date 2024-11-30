@@ -16,21 +16,21 @@ mlob(
 )
 }
 \arguments{
-\item{formula}{A formula specifying the model (e.g., \code{Y ~ X + C...}) where Y is the dependent variable, X is the context variable, which is the focus of most applications of the model  (always included), and C includes all additional covariates.}
+\item{formula}{an object of class "\link{formula}" (or one that can be coerced to that class): a symbolic description of the model to be fitted. Formula specifies the model (e.g., \code{Y ~ X + C...}), where Y is the dependent variable, X is the context variable, which is the focus of most applications of the model  (always included), and C includes all additional covariates.}
 
-\item{data}{A data frame containing the variables referenced in the formula. All variables used in the model, including the dependent variable, context variable, covariates, and grouping variable must be present in this data frame.}
+\item{data}{a data frame (or object converted by \link{as.data.frame} to a data frame) containing the variables referenced in the formula. All variables used in the model, including the dependent variable, context variable, covariates, and grouping variable must be present in this data frame.}
 
-\item{group}{A name of the variable that defines the affiliation of an individual (row) to the specific group.}
+\item{group}{a name of the variable that defines the affiliation of an individual (row) to the specific group.}
 
-\item{balancing.limit}{A number that represents the threshold of the maximum relative part of the dataset that can be deleted to balance the data. Defaults to \code{0.2}}
+\item{balancing.limit}{a number that represents the threshold of the maximum relative part of the dataset that can be deleted to balance the data. Defaults to \code{0.2}}
 
-\item{conf.level}{A numeric value representing the confidence level used to calculate confidence intervals for the estimators. Defaults to \code{0.95}, corresponding to a \code{95\%} confidence level.}
+\item{conf.level}{a numeric value representing the confidence level used to calculate confidence intervals for the estimators. Defaults to \code{0.95}, corresponding to a \code{95\%} confidence level.}
 
-\item{jackknife}{Logical variable. If \code{TRUE}, the jackknife re-sampling method will be applied to  calculate the standard error of the between-group and its confidence interval coefficient. Defaults to \code{FALSE}.}
+\item{jackknife}{logical variable. If \code{TRUE}, the jackknife re-sampling method will be applied to  calculate the standard error of the between-group and its confidence interval coefficient. Defaults to \code{FALSE}.}
 
-\item{punish.coeff}{A multiplier that punishes the balancing procedure when deleting the whole group. If punish.coeff is equal to \code{1}, no additional punishment is applied for deleting the group. Higher values intensify the penalty. Defaults to \code{2}.}
+\item{punish.coeff}{a multiplier that punishes the balancing procedure when deleting the whole group. If punish.coeff is equal to \code{1}, no additional punishment is applied for deleting the group. Higher values intensify the penalty. Defaults to \code{2}.}
 
-\item{...}{Additional arguments passed to the function.}
+\item{...}{additional arguments passed to the function.}
 }
 \value{
 A list containing the results of the regularized Bayesian estimation, which includes the model formula,dependent and context variables,and other relevant details from the analysis.
@@ -44,26 +44,40 @@ It is designed for scenarios where data is organized into multiple groups. When 
 This function also verifies whether the data is balanced (i.e., whether each group contains the same number of individuals). If the data is unbalanced, the balancing procedure
 comes into effect, and identifies the optimal number of items and groups to delete based on the punishment coefficient. If the amount of data deleted is more than defined by threshold
 (balancing.limit) then results should be interpreted with caution.
-}
-\examples{
-# Example usage with the iris dataset
 
-# View summary statistics (similar to summary of a linear model)
+The \code{summary()} function produces output similar to:
 
-mlob(Sepal.Length ~ Sepal.Width + Petal.Length, data = data, group = 'Species', conf.level = 0.01, jackknife = FALSE)
-summary(result)
-
+\preformatted{
 Summary of Coefficients:
-                    Estimate Std. Error Lower CI (99\%) Upper CI (99\%)   Z value   Pr(>|z|) Significance
+                    Estimate Std. Error Lower CI (99%) Upper CI (99%)   Z value   Pr(>|z|) Significance
 beta_b             0.4279681  0.7544766     -1.5154349       2.371371 0.5672384 0.57055223
 gamma_Petal.Length 0.4679522  0.2582579     -0.1972762       1.133181 1.8119567 0.06999289            .
 
 For comparison, summary of coefficients from unoptimized analysis (ML):
-                   Estimate   Std. Error Lower CI (99\%) Upper CI (99\%)      Z value   Pr(>|z|) Significance
+                   Estimate   Std. Error Lower CI (99%) Upper CI (99%)      Z value   Pr(>|z|) Significance
 beta_b             0.6027440 5.424780e+15  -1.397331e+16   1.397331e+16 1.111094e-16 1.00000000
 gamma_Petal.Length 0.4679522 2.582579e-01  -1.972762e-01   1.133181e+00 1.811957e+00 0.06999289            .
 
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+}
+}
+\examples{
+# Example usage with the iris dataset
+
+result <- mlob(Sepal.Length ~ Sepal.Width + Petal.Length, data = iris, group = 'Species', conf.level = 0.01, jackknife = FALSE);
+
+# View summary statistics (similar to summary of a linear model);
+
+summary(result)
 
 
+}
+\references{
+Dashuk, V., Hecht, M., Lüdtke, O., Robitzsch, A., & Zitzmann, S. (2024). An optimally regularized estimator of multilevel latent variable models with improved mse performance. \link{https://doi.org/10.13140/RG.2.2.18148.39048}
+}
+\author{
+Valerii Dashuk aaa,
+Binayak Timilsina,
+Martin Hecht, and
+Steffen Zitzmann
 }
