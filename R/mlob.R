@@ -38,23 +38,42 @@
 #' @return A list containing the results of the regularized Bayesian estimation, which includes the model formula,dependent and context variables,and other relevant details from the analysis.
 #
 #' @author 
-#' Valerii Dashuk aaa,
+#' Valerii Dashuk \email{vadashuk@gmail.com},
 #' Binayak Timilsina,
 #' Martin Hecht, and
 #' Steffen Zitzmann
 #' 
 #' @references
-#' Dashuk, V., Hecht, M., Lüdtke, O., Robitzsch, A., & Zitzmann, S. (2024). An optimally regularized estimator of multilevel latent variable models with improved mse performance. \link{https://doi.org/10.13140/RG.2.2.18148.39048}
+#' Dashuk, V., Hecht, M., Lüdtke, O., Robitzsch, A., & Zitzmann, S. (2024). An Optimally Regularized Estimator of Multilevel Latent Variable Models with Improved MSE Performance. \link{https://doi.org/10.13140/RG.2.2.18148.39048}
+#' 
+#' Dashuk, V., Hecht, M., Lüdtke, O., Robitzsch, A., & Zitzmann, S. (2024). Estimating Context Effects in Small Samples, Controlling for Covariates: An Optimally Regularized Bayesian Estimator for Multilevel Models: Manuscript submitted for publication.
+#' 
+#' Lüdtke, O., Marsh, H. W., Robitzsch, A., Trautwein, U., Asparouhov, T., & Muthén, B. (2008). The multilevel latent covariate model: a new, more reliable approach to group-level effects in contextual studies. \emph{Psychological methods}, 13(3):203–229. \link{https://doi.org/10.1037/a0012869}
 #'
 #' @examples
-#' # Example usage with the iris dataset
+#' # Example 1: usage with the iris dataset
 #'
-#' result <- mlob(Sepal.Length ~ Sepal.Width + Petal.Length, data = iris, group = 'Species', conf.level = 0.01, jackknife = FALSE);
+#' result_iris <- mlob(Sepal.Length ~ Sepal.Width + Petal.Length, data = iris, group = 'Species', conf.level = 0.01, jackknife = FALSE);
 #' 
 #' # View summary statistics (similar to summary of a linear model);
 #' 
-#' summary(result)
+#' summary(result_iris)
 #' 
+#' # Example 2: usage with slightly unbalanced ChickWeight dataset
+#' 
+#' result_ChickWeight <- mlob(weight ~ Time, data = ChickWeight, group = 'Diet', punish.coeff = 1.5, jackknife = FALSE)
+#' 
+#' # View summary statistics
+#' 
+#' summary(result_ChickWeight)
+#' 
+#' #' # Example 3: usage with highly unbalanced mtcars dataset (adjusted balancing.limit)
+#' 
+#' result_mtcars <- mlob(mpg ~ hp + wt + am + hp:wt + hp:am, data = mtcars, group = 'cyl', balancing.limit = 0.35)
+#' 
+#' # View summary statistics
+#' 
+#' summary(result_mtcars)
 #' 
 #' @export
 mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, jackknife = FALSE, punish.coeff = 2, ...) {
@@ -208,8 +227,9 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
 
   # If data is unbalanced issue a warning with number of entries, groups to delete
   if (check_balance(tab)==FALSE) {
-    warning(sprintf(" Your data is unbalanced. Balancing procedure was used.\n   Deleted entries: %d\n   Deleted groups: %d",
-                    min_items_to_delete_without_punishment, min_groups_to_delete))
+    percentage_items_deleted <- 100*min_items_to_delete_without_punishment / nrow(A)
+    
+    warning(sprintf(" Your data is unbalanced. Balancing procedure was used and %.1f%% of data was deleted.\n   Deleted entries: %d\n   Deleted groups: %d", percentage_items_deleted, min_items_to_delete_without_punishment, min_groups_to_delete))
 
 
     if (balancing.limit != 0.2)
@@ -221,7 +241,10 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
   # Check if the ratio of minimum items to delete is within the balancing.limit
   if (check_balance(tab)==FALSE) {
     if (min_items_to_delete_without_punishment / nrow(A) > balancing.limit || min_groups_to_delete / group_num > balancing.limit ) {
-      stop("The minimum items to delete exceed the balancing.limit. Data may not be balanced. If you want to run, adjust the balancing.limit")
+      
+      balancing.percentage <-balancing.limit*100 # to display balancing limit in percents
+      
+      stop(sprintf("The share of data that should be deleted is %.1f%% and exceeds the balancing.limit, %s%%.\n\n  Data may not be balanced. If you want to run, adjust the balancing.limit. \n\n", percentage_items_deleted, format(balancing.percentage, trim = TRUE)))
 
       return(A)  # Optionally return the unbalanced matrix
     }
@@ -264,33 +287,38 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
   }
 
 
-if(FALSE){
- #Use na.omit to remove rows with NA values in relevant columns
-  relevant_vars <- c(response_var, predictor_var, control_vars)
-  complete_data <- na.omit(data[relevant_vars]) # complete_data <- data[complete.cases(data[relevant_vars]), ]
-
-  #Recalculate number of rows
-  n_rows <- nrow(complete_data)
-
-  #Ensure we have enough data points after removing NAs
-  if (n_rows < 1) {
-    stop("No complete cases available after removing missing values.")
+  if(FALSE){
+   #Use na.omit to remove rows with NA values in relevant columns
+    relevant_vars <- c(response_var, predictor_var, control_vars)
+    complete_data <- na.omit(data[relevant_vars]) # complete_data <- data[complete.cases(data[relevant_vars]), ]
+  
+    #Recalculate number of rows
+    n_rows <- nrow(complete_data)
+  
+    #Ensure we have enough data points after removing NAs
+    if (n_rows < 1) {
+      stop("No complete cases available after removing missing values.")
+    }
+  
   }
-
-}
 
   # changing the model matrix into a data frame called data
   data <-as.data.frame(A)
 
   predictor_var <- names(data)[2]
-  control_vars <- names(data)[3:(length(names(data)) - 1)] # do not include last column - it defines groups
-
+  
+  # check that there are control variables in the data
+  if (ncol(data) > 3) {
+    control_vars <- names(data)[3:(length(names(data)) - 1)] # do not include last column - it defines groups
+  }
   # Extract relevant data columns
   y <- data[[response_var]]
   x <- data[[predictor_var]]
-  C <- data[control_vars]
-  C <- as.matrix(C)
-
+  # if control variables exist
+  if (exists("control_vars")) {
+    C <- data[control_vars]
+    C <- as.matrix(C)
+  }
   # Ensure that all variables (response, predictor, and controls) are numeric
   # Check response variable
   if (!is.numeric(y)) {
@@ -303,7 +331,7 @@ if(FALSE){
   }
 
   # Check all control variables (if any exist)
-  if (length(control_vars) > 0) {
+  if (exists("control_vars")) {
     nonnum_values <- sapply(C, function(x) !is.numeric(x))
 
     if (any(nonnum_values)) {
@@ -320,15 +348,16 @@ if(FALSE){
   if (sum(is.na(x))>0) {
     stop(paste("The predictor variable", predictor_var, "has null (nan) values."))
   }
-
+  exists("control_vars")
   # Checking for missing values in control variables
-
+  if (exists("control_vars")) {
     missing_values <- sapply(C, anyNA)
 
     if (any(missing_values)) {
       stop(paste("The following control variables contain missing values:",
                  paste(colnames(C[missing_values]), collapse = ", ")))
     }
+  }
 
   # If all checks pass, proceed with the function...
   # message("All checks passed. Function is ready to proceed.")
@@ -343,19 +372,23 @@ if(FALSE){
   data_CV <- list(
     y = y,
     x = x,
-    C = C,
     k = k,
     n = n,
-    kn = kn,
-    kc = length(control_vars) # Number of control variables
+    kn = kn
   )
+  
+  # Check if C exists
+  if (exists("control_vars")) {
+    data_CV$C <- C  # Add C to the list
+    data_CV$kc <- length(control_vars)  # Add number of control variables
+  }
 
   ML <- estimate_ML_CV(data_CV) # run ML estimator and get a preliminary estimation of b_b for estimate_Bay_CV
   data_CV$b_b = ML$beta_b_ML_CV # dummy real value of beta_b
 
   # Call estimate_Bay_CV function with data_CV
   Bay <- estimate_Bay_CV(data_CV)
-
+  
   # recalculate SE of Bayesian estimator with jackknife if a
   if (jackknife == TRUE){
     Bay_jackknife <- estimate_Bay_CV_SE_jackknife_individual(data_CV)
@@ -365,46 +398,93 @@ if(FALSE){
   # Generate the result output
 
   # Number of control variables (kc)
-  kc <- data_CV$kc
-
-  # Create the list of gamma values dynamically
-  Coefficients <- data.frame(
-    beta_b = Bay$beta_b_Bay,
-    t(sapply(1:kc, function(i) Bay$gamma[i]))   # Dynamic number of gamma columns
-  )
-
-  colnames(Coefficients) <- c("beta_b", paste0("gamma_", control_vars))  # Adjust gamma column names
-
-  Standard_Error <- data.frame(
-    beta_b = Bay$SE_beta_Bay,
-    t(sapply(1:kc, function(i) Bay$SE_gamma[i]))
-  )
-
-  colnames(Standard_Error) <- c("beta_b", paste0("gamma_", control_vars))
-
-  Confidence_Interval <- data.frame(
-    Lower = c(Bay$beta_b_Bay - qnorm(1-conf.level/2) * Bay$SE_beta_Bay, Bay$gamma - qnorm(1-conf.level/2) * Bay$SE_gamma),
-    Upper = c(Bay$beta_b_Bay + qnorm(1-conf.level/2) * Bay$SE_beta_Bay, Bay$gamma + qnorm(1-conf.level/2) * Bay$SE_gamma)
-  )
-
-  rownames(Confidence_Interval) <- c("beta_b", paste0("gamma_", control_vars))
+  if (exists("control_vars")){
+    kc <- data_CV$kc
+  } else {
+    kc<-0
+  }
+  
+  
+  # If control variables are present
+  if (kc>0) {
+    # Create the list of estimated values dynamically
+    Coefficients <- data.frame(
+      beta_b = Bay$beta_b_Bay,
+      t(sapply(1:kc, function(i) Bay$gamma[i]))   # Dynamic number of gamma columns
+    )
+    
+    colnames(Coefficients) <- c("beta_b", paste0("gamma_", control_vars))  # Adjust gamma column names
+  } else {
+    Coefficients <- data.frame(
+      beta_b = Bay$beta_b_Bay
+    )
+    colnames(Coefficients) <- c("beta_b")  # Adjust column names
+  }
+  
+  
+  if (kc>0) {
+    Standard_Error <- data.frame(
+      beta_b = Bay$SE_beta_Bay,
+      t(sapply(1:kc, function(i) Bay$SE_gamma[i]))
+    )
+  
+    colnames(Standard_Error) <- c("beta_b", paste0("gamma_", control_vars))
+  } else {
+    Standard_Error <- data.frame(
+      beta_b = Bay$SE_beta_Bay
+    )
+    
+    colnames(Standard_Error) <- c("beta_b")
+  }
+    
+  
+  if (kc>0) {
+    Confidence_Interval <- data.frame(
+      Lower = c(Bay$beta_b_Bay - qnorm(1-conf.level/2) * Bay$SE_beta_Bay, Bay$gamma - qnorm(1-conf.level/2) * Bay$SE_gamma),
+      Upper = c(Bay$beta_b_Bay + qnorm(1-conf.level/2) * Bay$SE_beta_Bay, Bay$gamma + qnorm(1-conf.level/2) * Bay$SE_gamma)
+    )
+    
+    rownames(Confidence_Interval) <- c("beta_b", paste0("gamma_", control_vars))
+  } else {
+    Confidence_Interval <- data.frame(
+      Lower = c(Bay$beta_b_Bay - qnorm(1-conf.level/2) * Bay$SE_beta_Bay),
+      Upper = c(Bay$beta_b_Bay + qnorm(1-conf.level/2) * Bay$SE_beta_Bay)
+    )
+    
+    rownames(Confidence_Interval) <- c("beta_b")
+  }
 
   Confidence_level <- paste0((1 - conf.level) * 100, "%")
-
-  Z_value <- data.frame(
-    beta_b = Bay$beta_b_Bay / Bay$SE_beta_Bay,
-    t(sapply(1:kc, function(i) Bay$gamma[i] / Bay$SE_gamma[i]))
-  )
-
-  colnames(Z_value) <- c("beta_b", paste0("gamma_", control_vars))
-
-  p_value <- data.frame(
-    beta_b = 2 * (1 - pnorm(abs(Bay$beta_b_Bay / Bay$SE_beta_Bay))),
-    t(sapply(1:kc, function(i) 2 * (1 - pnorm(abs(Bay$gamma[i] / Bay$SE_gamma[i])))))
-  )
-
-  colnames(p_value) <- c("beta_b", paste0("gamma_", control_vars))
-
+  
+  if (kc>0) {
+    Z_value <- data.frame(
+      beta_b = Bay$beta_b_Bay / Bay$SE_beta_Bay,
+      t(sapply(1:kc, function(i) Bay$gamma[i] / Bay$SE_gamma[i]))
+    )
+  
+    colnames(Z_value) <- c("beta_b", paste0("gamma_", control_vars))
+  } else {
+    Z_value <- data.frame(
+      beta_b = Bay$beta_b_Bay / Bay$SE_beta_Bay
+    )
+    
+    colnames(Z_value) <- c("beta_b")
+  }
+  
+  if (kc>0) {
+    p_value <- data.frame(
+      beta_b = 2 * (1 - pnorm(abs(Bay$beta_b_Bay / Bay$SE_beta_Bay))),
+      t(sapply(1:kc, function(i) 2 * (1 - pnorm(abs(Bay$gamma[i] / Bay$SE_gamma[i])))))
+    )
+  
+    colnames(p_value) <- c("beta_b", paste0("gamma_", control_vars))
+  } else {
+    p_value <- data.frame(
+      beta_b = 2 * (1 - pnorm(abs(Bay$beta_b_Bay / Bay$SE_beta_Bay)))
+    )
+    
+    colnames(p_value) <- c("beta_b")
+  }
 
   # Create the dynamic call_info string
   call_info <- paste0("mlob(", deparse(formula), ", data = data, group = ", data_CV$k)
@@ -426,8 +506,6 @@ if(FALSE){
 
   call_info <- paste0(call_info, ")")
 
-
-
   result <- list(
     Coefficients = Coefficients,
     Standard_Error = Standard_Error,
@@ -438,45 +516,81 @@ if(FALSE){
     call_info = call_info
 
   )
-
+  
   class(result) <- "mlob_result"  # Assign custom class
-
+  
   # return(result)
 
   # For unoptimized estimator  estimate_ML
-
-  Coefficients_ML <- data.frame(
-    beta_b = Bay$beta_b_ML,  # Using beta_b_ML here
-    t(sapply(1:kc, function(i) Bay$gamma[i]))   # Dynamic number of gamma columns
-  )
-  colnames(Coefficients_ML) <- c("beta_b_ML", paste0("gamma_", control_vars))
-
-  Standard_Error_ML <- data.frame(
-    beta_b = Bay$SE_beta_ML,
-    t(sapply(1:kc, function(i) Bay$SE_gamma[i]))
-  )
-  colnames(Standard_Error_ML) <- c("beta_b_ML", paste0("gamma_", control_vars))
-
-  Confidence_Interval_ML <- data.frame(
-    Lower = c(Bay$beta_b_ML - qnorm(1 - conf.level / 2) * Bay$SE_beta_ML, Bay$gamma - qnorm(1 - conf.level / 2) * Bay$SE_gamma),
-    Upper = c(Bay$beta_b_ML + qnorm(1 - conf.level / 2) * Bay$SE_beta_ML, Bay$gamma + qnorm(1 - conf.level / 2) * Bay$SE_gamma)
-  )
-  rownames(Confidence_Interval_ML) <- c("beta_b_ML", paste0("gamma_", control_vars))
-
-  Confidence_level_ML <- paste0((1 - conf.level) * 100, "%")
-
-  Z_value_ML <- data.frame(
-    beta_b = Bay$beta_b_ML / Bay$SE_beta_ML,
-    t(sapply(1:kc, function(i) Bay$gamma[i] / Bay$SE_gamma[i]))
-  )
-  colnames(Z_value_ML) <- c("beta_b_ML", paste0("gamma_", control_vars))
-
-  p_value_ML <- data.frame(
-    beta_b = 2 * (1 - pnorm(abs(Bay$beta_b_ML / Bay$SE_beta_ML))),
-    t(sapply(1:kc, function(i) 2 * (1 - pnorm(abs(Bay$gamma[i] / Bay$SE_gamma[i])))))
-  )
-  colnames(p_value_ML) <- c("beta_b", paste0("gamma_", control_vars))
-
+  
+  if (kc>0) {
+    Coefficients_ML <- data.frame(
+      beta_b = Bay$beta_b_ML,  # Using beta_b_ML here
+      t(sapply(1:kc, function(i) Bay$gamma[i]))   # Dynamic number of gamma columns
+    )
+    colnames(Coefficients_ML) <- c("beta_b_ML", paste0("gamma_", control_vars))
+  
+    Standard_Error_ML <- data.frame(
+      beta_b = Bay$SE_beta_ML,
+      t(sapply(1:kc, function(i) Bay$SE_gamma[i]))
+    )
+    colnames(Standard_Error_ML) <- c("beta_b_ML", paste0("gamma_", control_vars))
+  
+    Confidence_Interval_ML <- data.frame(
+      Lower = c(Bay$beta_b_ML - qnorm(1 - conf.level / 2) * Bay$SE_beta_ML, Bay$gamma - qnorm(1 - conf.level / 2) * Bay$SE_gamma),
+      Upper = c(Bay$beta_b_ML + qnorm(1 - conf.level / 2) * Bay$SE_beta_ML, Bay$gamma + qnorm(1 - conf.level / 2) * Bay$SE_gamma)
+    )
+    rownames(Confidence_Interval_ML) <- c("beta_b_ML", paste0("gamma_", control_vars))
+  
+    Confidence_level_ML <- paste0((1 - conf.level) * 100, "%")
+  
+    Z_value_ML <- data.frame(
+      beta_b = Bay$beta_b_ML / Bay$SE_beta_ML,
+      t(sapply(1:kc, function(i) Bay$gamma[i] / Bay$SE_gamma[i]))
+    )
+    colnames(Z_value_ML) <- c("beta_b_ML", paste0("gamma_", control_vars))
+  
+    p_value_ML <- data.frame(
+      beta_b = 2 * (1 - pnorm(abs(Bay$beta_b_ML / Bay$SE_beta_ML))),
+      t(sapply(1:kc, function(i) 2 * (1 - pnorm(abs(Bay$gamma[i] / Bay$SE_gamma[i])))))
+    )
+    colnames(p_value_ML) <- c("beta_b", paste0("gamma_", control_vars))
+    
+  } else {
+    
+    Coefficients_ML <- data.frame(
+      beta_b = Bay$beta_b_ML  # Using beta_b_ML here
+    )
+    
+    colnames(Coefficients_ML) <- c("beta_b_ML")
+    
+    Standard_Error_ML <- data.frame(
+      beta_b = Bay$SE_beta_ML
+    )
+    
+    colnames(Standard_Error_ML) <- c("beta_b_ML")
+    
+    Confidence_Interval_ML <- data.frame(
+      Lower = c(Bay$beta_b_ML - qnorm(1 - conf.level / 2) * Bay$SE_beta_ML),
+      Upper = c(Bay$beta_b_ML + qnorm(1 - conf.level / 2) * Bay$SE_beta_ML)
+    )
+    
+    rownames(Confidence_Interval_ML) <- c("beta_b_ML")
+    
+    Confidence_level_ML <- paste0((1 - conf.level) * 100, "%")
+    
+    Z_value_ML <- data.frame(
+      beta_b = Bay$beta_b_ML / Bay$SE_beta_ML
+    )
+    
+    colnames(Z_value_ML) <- c("beta_b_ML")
+    
+    p_value_ML <- data.frame(
+      beta_b = 2 * (1 - pnorm(abs(Bay$beta_b_ML / Bay$SE_beta_ML)))
+    )
+    
+    colnames(p_value_ML) <- c("beta_b")
+  }
 
   result$Coefficients_ML = Coefficients_ML
   result$Standard_Error_ML = Standard_Error_ML
@@ -544,13 +658,18 @@ summary.mlob_result <- function(object, ...) {
     Significance = sapply(object$p_value, signif_stars)
   )
 
-
+  # If control variables are present in the model
+  if (ncol(object$Coefficients)>1){
   # Extract control variable names from the Coefficients (removing the 'beta_b' column)
   control_vars <- colnames(object$Coefficients)[-1]  # Get control variable names (gamma_Age, gamma_Education, etc.)
 
   # Update the row names for the summary table using the actual control variable names
   rownames(summary_table) <- c("beta_b", control_vars)
-
+  } else {
+    # Update the row names for the summary table using the actual control variable names
+    rownames(summary_table) <- c("beta_b")
+  }
+  
   # Redact column names for consistency
   colnames(summary_table) <- c("Estimate", "Std. Error", paste0("Lower CI (", object$Confidence_level, ")"),
                                paste0("Upper CI (", object$Confidence_level, ")"), "Z value", "Pr(>|z|)", "Significance")
@@ -577,12 +696,17 @@ summary.mlob_result <- function(object, ...) {
     Significance = sapply(object$p_value, signif_stars)
   )
 
-  # Extract control variable names from the Coefficients (removing the 'beta_b' column)
-  control_vars <- colnames(object$Coefficients)[-1]  # Get control variable names (gamma_Age, gamma_Education, etc.)
-
-  # Define the number of rows based on the number of coefficients (beta_b + gamma terms)
-  rownames(summary_table_ML) <- c("beta_b", control_vars)
-
+  ## Extract control variable names from the Coefficients (removing the 'beta_b' column)
+  # control_vars <- colnames(object$Coefficients)[-1]  # Get control variable names (gamma_Age, gamma_Education, etc.)
+  
+  # If control variables are present in the model
+  if (ncol(object$Coefficients)>1){
+    # Define the number of rows based on the number of coefficients (beta_b + gamma terms)
+    rownames(summary_table_ML) <- c("beta_b", control_vars)
+  } else {
+    rownames(summary_table_ML) <- c("beta_b")
+  }
+  
   # Redact column names for consistency
   colnames(summary_table_ML) <- c("Estimate", "Std. Error", paste0("Lower CI (", object$Confidence_level, ")"),
                                paste0("Upper CI (", object$Confidence_level, ")"), "Z value", "Pr(>|z|)", "Significance")
@@ -691,10 +815,12 @@ estimate_ML_CV <- function(data) {
   beta_b_ML <- tau_yx / tau_x2
 
   # Multiple control variables part
-  beta_b_ML_tilde <- NULL
-  data$C = matrix(data$C)
+  
   if (!is.null(data$kc) && data$kc != 0) {
-
+    
+    beta_b_ML_tilde <- NULL
+    data$C = matrix(data$C)
+    
     phi <- matrix(0, nrow = 3, ncol = data$kc)
     data$C = matrix(data$C, nrow = data$k*data$n, ncol = data$kc)
     for (i in 1:data$kc) {
@@ -751,9 +877,15 @@ estimate_ML_CV <- function(data) {
 
     # ML estimation of beta_b for the model with control variables
     beta_b_ML_tilde <- tau_y_tilde_x / tau_x2
+    
+    return(list(beta_b_ML_CV = beta_b_ML_tilde, beta_b_ML_no_CV = beta_b_ML, gamma = gamma, tau_x2 = tau_x2, sigma_x2 = sigma_x2, tau_yx = tau_yx, sigma_yx = sigma_yx))
+  
+  } else {
+    
+    return(list(beta_b_ML_CV = beta_b_ML, beta_b_ML_no_CV = beta_b_ML, tau_x2 = tau_x2, sigma_x2 = sigma_x2, tau_yx = tau_yx, sigma_yx = sigma_yx))
   }
 
-  return(list(beta_b_ML_CV = beta_b_ML_tilde, beta_b_ML_no_CV = beta_b_ML, gamma = gamma, tau_x2 = tau_x2, sigma_x2 = sigma_x2, tau_yx = tau_yx, sigma_yx = sigma_yx))
+  
 }
 
 
@@ -855,54 +987,54 @@ estimate_Bay_CV <- function(data) {
   #Find 3 phi's for every of kc control variables from equation
   # C = phi1 + phi2*X_b + phi3*X_w + eps. Our aim is phi2 and phi3
 
-  if (!is.null(data$kc) && data$kc != 0) {
+  if ("kc" %in% names(data) && !is.null(data$kc) && data$kc != 0) {
     phi <- matrix(0, 3, data$kc)
 
     C <- list()
 
     for (i in 1:data$kc) {
-      C[[i]] <- list()
-
-      # 2 cases for number of control variables
-      if (data$kc>1){
-        # Reshape data$C[,i] into a matrix with n rows and J columns
-        C[[i]]$C <- matrix(data$C[, i], nrow = n, ncol = J)
-      }else{
-        C[[i]]$C <- matrix(data$C, nrow = n, ncol = J)
+        C[[i]] <- list()
+  
+        # 2 cases for number of control variables
+        if (data$kc>1){
+          # Reshape data$C[,i] into a matrix with n rows and J columns
+          C[[i]]$C <- matrix(data$C[, i], nrow = n, ncol = J)
+        } else{
+          C[[i]]$C <- matrix(data$C, nrow = n, ncol = J)
+        }
+  
+        # Compute the average of the entire C matrix
+        C[[i]]$av_C <- mean(C[[i]]$C)
+  
+        # Compute the average of each column in the C matrix
+        C[[i]]$av_C_j <- colMeans(C[[i]]$C)
+  
+        # Compute SPA_C and SPD_C
+        C[[i]]$SPA_C <- n * sum(C[[i]]$av_C_j * av_x_j) - n * J * (av_x * C[[i]]$av_C)
+        # 2 cases for number of control variables
+        if (data$kc>1){
+          C[[i]]$SPD_C <- sum(data$x * data$C[, i]) - n * sum(C[[i]]$av_C_j * av_x_j)
+        }else{
+          C[[i]]$SPD_C <- sum(data$x * data$C) - n * sum(C[[i]]$av_C_j * av_x_j)
+        }
+        # Compute MPA_C and MPD_C
+        C[[i]]$MPA_C <- C[[i]]$SPA_C / (J - 1)
+        C[[i]]$MPD_C <- C[[i]]$SPD_C / ((n - 1) * J)
+  
+        # Compute tau_C_x and sigma_C_x
+        C[[i]]$tau_C_x <- (C[[i]]$MPA_C - C[[i]]$MPD_C) / n
+        C[[i]]$sigma_C_x <- C[[i]]$MPD_C
+  
+        # Initialize phi as a vector of zeros
+        C[[i]]$phi <- numeric(3)
+  
+        # Compute phi values
+        C[[i]]$phi[2] <- C[[i]]$tau_C_x / tau_x2
+        C[[i]]$phi[3] <- C[[i]]$sigma_C_x / sigma_x2
+  
+        # Store the phi vector in the phi matrix
+        phi[, i] <- C[[i]]$phi
       }
-
-      # Compute the average of the entire C matrix
-      C[[i]]$av_C <- mean(C[[i]]$C)
-
-      # Compute the average of each column in the C matrix
-      C[[i]]$av_C_j <- colMeans(C[[i]]$C)
-
-      # Compute SPA_C and SPD_C
-      C[[i]]$SPA_C <- n * sum(C[[i]]$av_C_j * av_x_j) - n * J * (av_x * C[[i]]$av_C)
-      # 2 cases for number of control variables
-      if (data$kc>1){
-        C[[i]]$SPD_C <- sum(data$x * data$C[, i]) - n * sum(C[[i]]$av_C_j * av_x_j)
-      }else{
-        C[[i]]$SPD_C <- sum(data$x * data$C) - n * sum(C[[i]]$av_C_j * av_x_j)
-      }
-      # Compute MPA_C and MPD_C
-      C[[i]]$MPA_C <- C[[i]]$SPA_C / (J - 1)
-      C[[i]]$MPD_C <- C[[i]]$SPD_C / ((n - 1) * J)
-
-      # Compute tau_C_x and sigma_C_x
-      C[[i]]$tau_C_x <- (C[[i]]$MPA_C - C[[i]]$MPD_C) / n
-      C[[i]]$sigma_C_x <- C[[i]]$MPD_C
-
-      # Initialize phi as a vector of zeros
-      C[[i]]$phi <- numeric(3)
-
-      # Compute phi values
-      C[[i]]$phi[2] <- C[[i]]$tau_C_x / tau_x2
-      C[[i]]$phi[3] <- C[[i]]$sigma_C_x / sigma_x2
-
-      # Store the phi vector in the phi matrix
-      phi[, i] <- C[[i]]$phi
-    }
 
     C <- data$C
     x_b <- matrix(rep(av_x_j, each = n), nrow = n * J, ncol = 1)
@@ -1505,7 +1637,6 @@ estimate_Bay_CV <- function(data) {
   #Bay <- 0.1
   Bay <- list()
   Bay$A <- A
-  #Bay$B2 = B2;
   Bay$Sigma_x <- Sigma_x
   Bay$Sigma_yx <- Sigma_yx
   Bay$Sigma_y <- Sigma_y
@@ -1530,25 +1661,34 @@ estimate_Bay_CV <- function(data) {
   Bay$beta_b_ML <- beta_b_ML
   Bay$beta_b_Bay <- beta_b_Bay
   Bay$beta_b_Bay_ML <- beta_b_Bay_ML
-  Bay$gamma <- gamma
+  
+  if (exists("gamma") && !is.function(gamma)){
+    Bay$gamma <- gamma
+  }
+  
   Bay$MSE_beta_b_Bay <- MSE_beta_b_Bay
   Bay$MSE_beta_b_Bay_ML <- MSE_beta_b_Bay_ML
   Bay$MSE_add <- MSE_add
   Bay$SE_beta_ML = SE_beta_ML
   Bay$SE_beta_Bay = SE_beta_Bay
   Bay$SE_beta_Bay_ML = SE_beta_Bay_ML
-  Bay$SE_gamma = SE_gamma
+  
+  if (exists("SE_gamma")){
+    Bay$SE_gamma = SE_gamma
+  }
 
-  Bay_list <- list( 'A'=A,  'Sigma_x'=Sigma_x, 'Sigma_y'=Sigma_y, 'Sigma_yx'=Sigma_yx, 'tau_x2'=tau_x2,
-                    'sigma_x2'=sigma_x2, 'tau_y2'=tau_y2, 'sigma_y2'=sigma_y2,  'tau_yx'=tau_yx,
-                    'sigma_yx'=sigma_yx,'D_x'=D_x,  'D_y'=D_y, 'D_yx'=D_yx,'V_x'=V_x, 'V_y'=V_y,
-                    'V_yx'=V_yx,'L1'=L1, 'L2'=L2,  'MSE'=MSE,  'MSE_ML'=MSE_ML,'W'=W,'Tau02'=Tau02,
-                    'beta_b_ML'=beta_b_ML, 'beta_b_Bay'=beta_b_Bay,'beta_b_Bay_ML'=beta_b_Bay_ML,
-                    'gamma' = gamma, 'MSE_beta_b_Bay'=MSE_beta_b_Bay,'MSE_beta_b_Bay_ML'=MSE_beta_b_Bay_ML,
-                    'MSE_add'= MSE_add, 'SE_beta_ML' = SE_beta_ML, 'SE_beta_Bay' = SE_beta_Bay,
-                    'SE_beta_Bay_ML' = SE_beta_Bay_ML, 'SE_gamma' = SE_gamma)
+  #Bay_list <- list( 'A'=A,  'Sigma_x'=Sigma_x, 'Sigma_y'=Sigma_y, 'Sigma_yx'=Sigma_yx, 'tau_x2'=tau_x2,
+  #                  'sigma_x2'=sigma_x2, 'tau_y2'=tau_y2, 'sigma_y2'=sigma_y2,  'tau_yx'=tau_yx,
+  #                  'sigma_yx'=sigma_yx,'D_x'=D_x,  'D_y'=D_y, 'D_yx'=D_yx,'V_x'=V_x, 'V_y'=V_y,
+  #                  'V_yx'=V_yx,'L1'=L1, 'L2'=L2,  'MSE'=MSE,  'MSE_ML'=MSE_ML,'W'=W,'Tau02'=Tau02,
+  #                  'beta_b_ML'=beta_b_ML, 'beta_b_Bay'=beta_b_Bay,'beta_b_Bay_ML'=beta_b_Bay_ML,
+  #                  'gamma' = gamma, 'MSE_beta_b_Bay'=MSE_beta_b_Bay,'MSE_beta_b_Bay_ML'=MSE_beta_b_Bay_ML,
+  #                  'MSE_add'= MSE_add, 'SE_beta_ML' = SE_beta_ML, 'SE_beta_Bay' = SE_beta_Bay,
+  #                  'SE_beta_Bay_ML' = SE_beta_Bay_ML, 'SE_gamma' = SE_gamma)
 
   #print(Bay_list)
+  
+  Bay_list = Bay
 }
 
 
@@ -1587,10 +1727,13 @@ estimate_Bay_CV_SE_jackknife_individual <- function(data) {
     data_jackknife <- data
     data_jackknife$x <- data$x[indices]
     data_jackknife$y <- data$y[indices]
-    if (data$kc>1){
-      data_jackknife$C <- data$C[indices, , drop = FALSE]
-    } else {
-      data_jackknife$C <- data$C[indices, drop = FALSE]
+    
+    if ("kc" %in% names(data)){
+      if (data$kc>1){
+        data_jackknife$C <- data$C[indices, , drop = FALSE]
+      } else {
+        data_jackknife$C <- data$C[indices, drop = FALSE]
+      }
     }
     data_jackknife$n <- n - 1
     data_jackknife$kn <- (n-1)*J

@@ -70,13 +70,24 @@ result <- mlob(Sepal.Length ~ Sepal.Width + Petal.Length, data = iris, group = '
 
 summary(result)
 
+# Example usage with ChickWeight dataset
+
+result <- mlob(weight ~ Time, data = ChickWeight, group = 'Diet', balancing.limit = 0.19, punish.coeff = 1.5, jackknife = FALSE)
+
+# View summary statistics
+
+summary(result)
 
 }
 \references{
-Dashuk, V., Hecht, M., Lüdtke, O., Robitzsch, A., & Zitzmann, S. (2024). An optimally regularized estimator of multilevel latent variable models with improved mse performance. \link{https://doi.org/10.13140/RG.2.2.18148.39048}
+Dashuk, V., Hecht, M., Lüdtke, O., Robitzsch, A., & Zitzmann, S. (2024). An Optimally Regularized Estimator of Multilevel Latent Variable Models with Improved MSE Performance. \link{https://doi.org/10.13140/RG.2.2.18148.39048}
+
+Dashuk, V., Hecht, M., Lüdtke, O., Robitzsch, A., & Zitzmann, S. (2024). Estimating Context Effects in Small Samples, Controlling for Covariates: An Optimally Regularized Bayesian Estimator for Multilevel Models: Manuscript submitted for publication.
+
+Lüdtke, O., Marsh, H. W., Robitzsch, A., Trautwein, U., Asparouhov, T., & Muthén, B. (2008). The multilevel latent covariate model: a new, more reliable approach to group-level effects in contextual studies. \emph{Psychological methods}, 13(3):203–229. \link{https://doi.org/10.1037/a0012869}
 }
 \author{
-Valerii Dashuk aaa,
+Valerii Dashuk \email{vadashuk@gmail.com},
 Binayak Timilsina,
 Martin Hecht, and
 Steffen Zitzmann
