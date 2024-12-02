@@ -67,7 +67,7 @@
 #' 
 #' summary(result_ChickWeight)
 #' 
-#' #' # Example 3: usage with highly unbalanced mtcars dataset (adjusted balancing.limit)
+#' # Example 3: usage with highly unbalanced mtcars dataset (adjusted balancing.limit)
 #' 
 #' result_mtcars <- mlob(mpg ~ hp + wt + am + hp:wt + hp:am, data = mtcars, group = 'cyl', balancing.limit = 0.35)
 #' 
