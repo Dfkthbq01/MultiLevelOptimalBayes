@@ -64,7 +64,7 @@ Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 \examples{
 # Example 1: usage with the iris dataset
 
-result_iris <- mlob(Sepal.Length ~ Sepal.Width + Petal.Length, data = iris, group = 'Species', conf.level = 0.01, jackknife = FALSE);
+result_iris <- mlob(Sepal.Length ~ Sepal.Width + Petal.Length, data = iris, group = 'Species', conf.level = 0.01, jackknife = FALSE)
 
 # View summary statistics (similar to summary of a linear model);
 
@@ -73,6 +73,10 @@ summary(result_iris)
 # Example 2: usage with slightly unbalanced ChickWeight dataset
 
 result_ChickWeight <- mlob(weight ~ Time, data = ChickWeight, group = 'Diet', punish.coeff = 1.5, jackknife = FALSE)
+
+# View the results
+
+print(result_ChickWeight)
 
 # View summary statistics
 
@@ -90,13 +94,13 @@ summary(result_mtcars)
 \references{
 Dashuk, V., Hecht, M., Lüdtke, O., Robitzsch, A., & Zitzmann, S. (2024). An Optimally Regularized Estimator of Multilevel Latent Variable Models with Improved MSE Performance. \url{https://doi.org/10.13140/RG.2.2.18148.39048}
 
-Dashuk, V., Hecht, M., Lüdtke, O., Robitzsch, A., & Zitzmann, S. (2024). Estimating Context Effects in Small Samples, Controlling for Covariates: An Optimally Regularized Bayesian Estimator for Multilevel Models: Manuscript submitted for publication.
+Dashuk, V., Hecht, M., Lüdtke, O., Robitzsch, A., & Zitzmann, S. (2024). Estimating Context Effects in Small Samples, Controlling for Covariates: An Optimally Regularized Bayesian Estimator for Multilevel Models: Manuscript submitted for publication. \url{http://dx.doi.org/10.13140/RG.2.2.27390.09286}
 
 Lüdtke, O., Marsh, H. W., Robitzsch, A., Trautwein, U., Asparouhov, T., & Muthén, B. (2008). The multilevel latent covariate model: a new, more reliable approach to group-level effects in contextual studies. \emph{Psychological methods}, 13(3):203–229. \url{https://doi.org/10.1037/a0012869}
 }
 \author{
 Valerii Dashuk \email{vadashuk@gmail.com},
-Binayak Timilsina,
+Binayak Timilsina \email{binayak.timilsina001@gmail.com},
 Martin Hecht, and
 Steffen Zitzmann
 }
