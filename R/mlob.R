@@ -114,6 +114,11 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
     stop("The 'punish.coeff' should be a numeric value greater than 0.")
   }
 
+  
+  if (is.factor(data[[group]])) {
+    data[[group]] = as.numeric(data[[group]])
+  }
+  
   # Parse the formula (Y ~ X + C...)
   # to incorporate model.matrix in mlob function,we can modify formula parsing part to automatically handle interaction terms,factors,
   # we parse covariates from the Matrix A not from the data
@@ -124,6 +129,7 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
   # Create the model matrix using the formula
   A <- model.matrix(formula, data = data)
   A <- as.data.frame(A)
+  
 
   # Check if intercept exists, rename it to 'y' or create a new column response_var if not present
   if ("(Intercept)" %in% colnames(A)) {
@@ -140,6 +146,7 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
   # All columns from the model matrix
 
   predictors <- colnames(A)
+  
 
   # Exclude the intercept (if included in the model matrix)
   predictors <- predictors[predictors != response_var]
@@ -271,10 +278,18 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
         A <- A[-group_indices_to_remove, ]
       }
     }
-
-
+    
+      # testing: delete groups that are unused for the case when groups are given by factor type of the data
+      
+      if (is.factor(A$group)) {
+        A$group <- droplevels(A$group)
+      }
+    
+    
       # Print final counts after balancing
       balanced_group_counts <- table(A$group)
+      
+      
   #    cat("\nGroups and their sizes after balancing:\n")
   #    print(balanced_group_counts)
 
@@ -285,11 +300,12 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
     if (length(group_size) > 1){
       warning("Data was not balanced correctly.")
     }
+    
   } else {
     group_num <- length(group_counts)
     group_size <- unique(group_counts)
   }
-
+  
 
   if(FALSE){
    #Use na.omit to remove rows with NA values in relevant columns
@@ -371,7 +387,7 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
   n <- group_size  # Size of each group
   k <- group_num # Number of groups
   kn <- k * n  # Total observations
-
+  
   # Prepare data_CV list
   data_CV <- list(
     y = y,
@@ -387,9 +403,21 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
     data_CV$kc <- length(control_vars)  # Add number of control variables
   }
 
+  
   ML <- estimate_ML_CV(data_CV) # run ML estimator and get a preliminary estimation of b_b for estimate_Bay_CV
+  #check if there is any variation between group
+  if (ML$tau_x2==0 || ML$tau_yx==0){
+    stop(sprintf("The provided data does not include between-group variation for the given model.\n  A two-level model is no longer necessary because the grouping structure does not add information.\n  Consider using a single-level model, treating all observations as independent."))
+  }
+  #check if there is any variation within group
+  if (ML$sigma_x2==0 || ML$sigma_yx==0){
+    stop(sprintf("The provided data does not include within-group variation for the given model.\n  All observations within a group are identical (or perfectly correlated).\n  Consider using a simpler model."))
+  }
+  
+  
+  
   data_CV$b_b = ML$beta_b_ML_CV # dummy real value of beta_b
-
+  
   # Call estimate_Bay_CV function with data_CV
   Bay <- estimate_Bay_CV(data_CV)
   
@@ -697,7 +725,7 @@ summary.mlob_result <- function(object, ...) {
     `Upper CI` = as.numeric(object$Confidence_Interval_ML$Upper),
     `Z value` = as.numeric(object$Z_value_ML),
     `Pr(>|z|)` = as.numeric(object$p_value_ML),
-    Significance = sapply(object$p_value, signif_stars)
+    Significance = sapply(object$p_value_ML, signif_stars)
   )
 
   ## Extract control variable names from the Coefficients (removing the 'beta_b' column)
@@ -844,10 +872,12 @@ estimate_ML_CV <- function(data) {
 
       MPA_C <- SPA_C / (data$j - 1)
       MPD_C <- SPD_C / ((data$n - 1) * data$j)
-
+      
+      
       tau_C_x <- (MPA_C - MPD_C) / data$n
       sigma_C_x <- MPD_C
-
+      
+      
       phi[2, i] <- tau_C_x / tau_x2
       phi[3, i] <- sigma_C_x / sigma_x2
     }
@@ -948,6 +978,7 @@ estimate_Bay_CV <- function(data) {
 
   J <- data$k
   n <- data$n
+  
 
   a <- rep(0, n * J + J + 1)
 
