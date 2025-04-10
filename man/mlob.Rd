@@ -62,9 +62,14 @@ Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 }
 }
 \examples{
+
 # Example 1: usage with the iris dataset
 
-result_iris <- mlob(Sepal.Length ~ Sepal.Width + Petal.Length, data = iris, group = 'Species', conf.level = 0.01, jackknife = FALSE)
+result_iris <- mlob(
+Sepal.Length ~ Sepal.Width + Petal.Length, 
+data = iris, group = 'Species',
+conf.level = 0.01,
+jackknife = FALSE)
 
 # View summary statistics (similar to summary of a linear model);
 
@@ -72,7 +77,12 @@ summary(result_iris)
 
 # Example 2: usage with slightly unbalanced ChickWeight dataset
 
-result_ChickWeight <- mlob(weight ~ Time, data = ChickWeight, group = 'Diet', punish.coeff = 1.5, jackknife = FALSE)
+result_ChickWeight <- mlob(
+weight ~ Time, 
+data = ChickWeight, 
+group = 'Diet', 
+punish.coeff = 1.5, 
+jackknife = FALSE)
 
 # View the results
 
@@ -84,7 +94,10 @@ summary(result_ChickWeight)
 
 # Example 3: usage with highly unbalanced mtcars dataset (adjusted balancing.limit)
 
-result_mtcars <- mlob(mpg ~ hp + wt + am + hp:wt + hp:am, data = mtcars, group = 'cyl', balancing.limit = 0.35)
+result_mtcars <- mlob(
+mpg ~ hp + wt + am + hp:wt + hp:am, 
+data = mtcars, group = 'cyl', 
+balancing.limit = 0.35)
 
 # View summary statistics
 

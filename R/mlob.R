@@ -51,9 +51,14 @@
 #' Lüdtke, O., Marsh, H. W., Robitzsch, A., Trautwein, U., Asparouhov, T., & Muthén, B. (2008). The multilevel latent covariate model: a new, more reliable approach to group-level effects in contextual studies. \emph{Psychological methods}, 13(3):203–229. \url{https://doi.org/10.1037/a0012869}
 #'
 #' @examples
+#' 
 #' # Example 1: usage with the iris dataset
 #'
-#' result_iris <- mlob(Sepal.Length ~ Sepal.Width + Petal.Length, data = iris, group = 'Species', conf.level = 0.01, jackknife = FALSE)
+#' result_iris <- mlob(
+#' Sepal.Length ~ Sepal.Width + Petal.Length, 
+#' data = iris, group = 'Species',
+#' conf.level = 0.01,
+#' jackknife = FALSE)
 #' 
 #' # View summary statistics (similar to summary of a linear model);
 #' 
@@ -61,7 +66,12 @@
 #' 
 #' # Example 2: usage with slightly unbalanced ChickWeight dataset
 #' 
-#' result_ChickWeight <- mlob(weight ~ Time, data = ChickWeight, group = 'Diet', punish.coeff = 1.5, jackknife = FALSE)
+#' result_ChickWeight <- mlob(
+#' weight ~ Time, 
+#' data = ChickWeight, 
+#' group = 'Diet', 
+#' punish.coeff = 1.5, 
+#' jackknife = FALSE)
 #' 
 #' # View the results
 #' 
@@ -73,7 +83,10 @@
 #' 
 #' # Example 3: usage with highly unbalanced mtcars dataset (adjusted balancing.limit)
 #' 
-#' result_mtcars <- mlob(mpg ~ hp + wt + am + hp:wt + hp:am, data = mtcars, group = 'cyl', balancing.limit = 0.35)
+#' result_mtcars <- mlob(
+#' mpg ~ hp + wt + am + hp:wt + hp:am, 
+#' data = mtcars, group = 'cyl', 
+#' balancing.limit = 0.35)
 #' 
 #' # View summary statistics
 #' 
