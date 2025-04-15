@@ -44,11 +44,11 @@
 #' Steffen Zitzmann
 #' 
 #' @references
-#' Dashuk, V., Hecht, M., Lüdtke, O., Robitzsch, A., & Zitzmann, S. (2024). An Optimally Regularized Estimator of Multilevel Latent Variable Models with Improved MSE Performance. \url{https://doi.org/10.13140/RG.2.2.18148.39048}
+#' Dashuk, V., Hecht, M., Luedtke, O., Robitzsch, A., & Zitzmann, S. (2024). An Optimally Regularized Estimator of Multilevel Latent Variable Models with Improved MSE Performance. \url{https://doi.org/10.13140/RG.2.2.18148.39048}
 #' 
-#' Dashuk, V., Hecht, M., Lüdtke, O., Robitzsch, A., & Zitzmann, S. (2024). Estimating Context Effects in Small Samples, Controlling for Covariates: An Optimally Regularized Bayesian Estimator for Multilevel Models: Manuscript submitted for publication. \url{http://dx.doi.org/10.13140/RG.2.2.34350.01604}
+#' Dashuk, V., Hecht, M., Luedtke, O., Robitzsch, A., & Zitzmann, S. (2024). Estimating Context Effects in Small Samples, Controlling for Covariates: An Optimally Regularized Bayesian Estimator for Multilevel Models: Manuscript submitted for publication. \url{http://dx.doi.org/10.13140/RG.2.2.34350.01604}
 #' 
-#' Lüdtke, O., Marsh, H. W., Robitzsch, A., Trautwein, U., Asparouhov, T., & Muthén, B. (2008). The multilevel latent covariate model: a new, more reliable approach to group-level effects in contextual studies. \emph{Psychological methods}, 13(3):203–229. \url{https://doi.org/10.1037/a0012869}
+#' Luedtke, O., Marsh, H. W., Robitzsch, A., Trautwein, U., Asparouhov, T., & Muthen, B. (2008). The multilevel latent covariate model: a new, more reliable approach to group-level effects in contextual studies. \emph{Psychological methods}, 13(3):203-229. \url{https://doi.org/10.1037/a0012869}
 #'
 #' @examples
 #' 
@@ -140,7 +140,7 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
   response_var <- all_vars[1]
 
   # Create the model matrix using the formula
-  A <- model.matrix(formula, data = data)
+  A <- stats::model.matrix(formula, data = data)
   A <- as.data.frame(A)
   
 
@@ -292,7 +292,7 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
       }
     }
     
-      # testing: delete groups that are unused for the case when groups are given by factor type of the data
+      #  delete groups that are unused for the case when groups are given by sequential factor type of the data
       
       if (is.factor(A$group)) {
         A$group <- droplevels(A$group)
@@ -485,15 +485,15 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
   
   if (kc>0) {
     Confidence_Interval <- data.frame(
-      Lower = c(Bay$beta_b_Bay - qnorm(1-conf.level/2) * Bay$SE_beta_Bay, Bay$gamma - qnorm(1-conf.level/2) * Bay$SE_gamma),
-      Upper = c(Bay$beta_b_Bay + qnorm(1-conf.level/2) * Bay$SE_beta_Bay, Bay$gamma + qnorm(1-conf.level/2) * Bay$SE_gamma)
+      Lower = c(Bay$beta_b_Bay - stats::qnorm(1-conf.level/2) * Bay$SE_beta_Bay, Bay$gamma - stats::qnorm(1-conf.level/2) * Bay$SE_gamma),
+      Upper = c(Bay$beta_b_Bay + stats::qnorm(1-conf.level/2) * Bay$SE_beta_Bay, Bay$gamma + stats::qnorm(1-conf.level/2) * Bay$SE_gamma)
     )
     
     rownames(Confidence_Interval) <- c("beta_b", paste0("gamma_", control_vars))
   } else {
     Confidence_Interval <- data.frame(
-      Lower = c(Bay$beta_b_Bay - qnorm(1-conf.level/2) * Bay$SE_beta_Bay),
-      Upper = c(Bay$beta_b_Bay + qnorm(1-conf.level/2) * Bay$SE_beta_Bay)
+      Lower = c(Bay$beta_b_Bay - stats::qnorm(1-conf.level/2) * Bay$SE_beta_Bay),
+      Upper = c(Bay$beta_b_Bay + stats::qnorm(1-conf.level/2) * Bay$SE_beta_Bay)
     )
     
     rownames(Confidence_Interval) <- c("beta_b")
@@ -518,14 +518,14 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
   
   if (kc>0) {
     p_value <- data.frame(
-      beta_b = 2 * (1 - pnorm(abs(Bay$beta_b_Bay / Bay$SE_beta_Bay))),
-      t(sapply(1:kc, function(i) 2 * (1 - pnorm(abs(Bay$gamma[i] / Bay$SE_gamma[i])))))
+      beta_b = 2 * (1 - stats::pnorm(abs(Bay$beta_b_Bay / Bay$SE_beta_Bay))),
+      t(sapply(1:kc, function(i) 2 * (1 - stats::pnorm(abs(Bay$gamma[i] / Bay$SE_gamma[i])))))
     )
   
     colnames(p_value) <- c("beta_b", paste0("gamma_", control_vars))
   } else {
     p_value <- data.frame(
-      beta_b = 2 * (1 - pnorm(abs(Bay$beta_b_Bay / Bay$SE_beta_Bay)))
+      beta_b = 2 * (1 - stats::pnorm(abs(Bay$beta_b_Bay / Bay$SE_beta_Bay)))
     )
     
     colnames(p_value) <- c("beta_b")
@@ -582,8 +582,8 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
     colnames(Standard_Error_ML) <- c("beta_b_ML", paste0("gamma_", control_vars))
   
     Confidence_Interval_ML <- data.frame(
-      Lower = c(Bay$beta_b_ML - qnorm(1 - conf.level / 2) * Bay$SE_beta_ML, Bay$gamma - qnorm(1 - conf.level / 2) * Bay$SE_gamma),
-      Upper = c(Bay$beta_b_ML + qnorm(1 - conf.level / 2) * Bay$SE_beta_ML, Bay$gamma + qnorm(1 - conf.level / 2) * Bay$SE_gamma)
+      Lower = c(Bay$beta_b_ML - stats::qnorm(1 - conf.level / 2) * Bay$SE_beta_ML, Bay$gamma - stats::qnorm(1 - conf.level / 2) * Bay$SE_gamma),
+      Upper = c(Bay$beta_b_ML + stats::qnorm(1 - conf.level / 2) * Bay$SE_beta_ML, Bay$gamma + stats::qnorm(1 - conf.level / 2) * Bay$SE_gamma)
     )
     rownames(Confidence_Interval_ML) <- c("beta_b_ML", paste0("gamma_", control_vars))
   
@@ -596,8 +596,8 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
     colnames(Z_value_ML) <- c("beta_b_ML", paste0("gamma_", control_vars))
   
     p_value_ML <- data.frame(
-      beta_b = 2 * (1 - pnorm(abs(Bay$beta_b_ML / Bay$SE_beta_ML))),
-      t(sapply(1:kc, function(i) 2 * (1 - pnorm(abs(Bay$gamma[i] / Bay$SE_gamma[i])))))
+      beta_b = 2 * (1 - stats::pnorm(abs(Bay$beta_b_ML / Bay$SE_beta_ML))),
+      t(sapply(1:kc, function(i) 2 * (1 - stats::pnorm(abs(Bay$gamma[i] / Bay$SE_gamma[i])))))
     )
     colnames(p_value_ML) <- c("beta_b", paste0("gamma_", control_vars))
     
@@ -616,8 +616,8 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
     colnames(Standard_Error_ML) <- c("beta_b_ML")
     
     Confidence_Interval_ML <- data.frame(
-      Lower = c(Bay$beta_b_ML - qnorm(1 - conf.level / 2) * Bay$SE_beta_ML),
-      Upper = c(Bay$beta_b_ML + qnorm(1 - conf.level / 2) * Bay$SE_beta_ML)
+      Lower = c(Bay$beta_b_ML - stats::qnorm(1 - conf.level / 2) * Bay$SE_beta_ML),
+      Upper = c(Bay$beta_b_ML + stats::qnorm(1 - conf.level / 2) * Bay$SE_beta_ML)
     )
     
     rownames(Confidence_Interval_ML) <- c("beta_b_ML")
@@ -631,7 +631,7 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
     colnames(Z_value_ML) <- c("beta_b_ML")
     
     p_value_ML <- data.frame(
-      beta_b = 2 * (1 - pnorm(abs(Bay$beta_b_ML / Bay$SE_beta_ML)))
+      beta_b = 2 * (1 - stats::pnorm(abs(Bay$beta_b_ML / Bay$SE_beta_ML)))
     )
     
     colnames(p_value_ML) <- c("beta_b")
@@ -764,66 +764,14 @@ summary.mlob_result <- function(object, ...) {
   print(summary_table_ML, row.names = TRUE)
 
   # Add significance codes
-  cat("\nSignif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1\n")
+  cat("\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n")
 
 }
 
 
 estimate_ML_CV <- function(data) {
-
-  library(pracma)
-
-  ##
-
-  tog <- 0 ## Matlab load toggle and change signature data - used for debug
-
-  if (tog>0) {
-
-    library(R.matlab)
-    data <- readMat("data_CV_matlab.mat") # change file name
-    #print(data)
-
-    data1 <- list(
-      k=(data$data[[1]])[1],
-      n=(data$data[[2]])[1],
-      kc=(data$data[[3]])[1],
-      ICC_x=(data$data[[4]])[1],
-      ICC_y=(data$data[[5]])[1],
-      ICC_C =(data$data[[6]])[1],
-      b0=(data$data[[7]])[1],
-      b_w=(data$data[[8]])[1],
-      b_b=(data$data[[9]])[1],
-      gamma=(data$data[[10]])[1],
-      kn=(data$data[[11]])[1],
-      m_x=(data$data[[12]])[1],
-      var_x1=(data$data[[13]])[1],
-      var_x2=(data$data[[14]])[1],
-      var_e1=(data$data[[15]])[1],
-      var_e2=(data$data[[16]])[1],
-
-      cov_mat =(data$data[[17]]),
-      cov_mat_b =(data$data[[18]]),
-
-      x2=(data$data[[19]]),
-      x=(data$data[[20]]),
-      e2=(data$data[[21]]),
-      m_C =(data$data[[22]])[1],
-      var_C1 = (data$data[[23]])[1],
-      var_C2 =(data$data[[24]])[1],
-
-      C2=(data$data[[25]]),
-      C=(data$data[[26]]),
-      y=(data$data[[27]]),
-      x2D=(data$data[[28]])
-    )
-
-
-    data <-data1
-    #print(data)
-
-  }
-
-
+   
+  
   data$j <- data$k
   # Reshape the data.x into an n x j matrix
   x <- matrix(data$x, nrow = data$n, ncol = data$k)
@@ -936,58 +884,8 @@ estimate_ML_CV <- function(data) {
 }
 
 
-estimate_Bay_CV <- function(data) {
-
-  library(pracma)
-
-  tog <- 0 ## Matlab load toggle and change signature data - used for debug
-
-  if (tog>0) {
-
-    library(R.matlab)
-    data <- readMat("data_CV_matlab.mat") #change file name
-    #print(data)
-
-    data1 <- list(
-      k=(data$data[[1]])[1],
-      n=(data$data[[2]])[1],
-      kc=(data$data[[3]])[1],
-      ICC_x=(data$data[[4]])[1],
-      ICC_y=(data$data[[5]])[1],
-      ICC_C =(data$data[[6]])[1],
-      b0=(data$data[[7]])[1],
-      b_w=(data$data[[8]])[1],
-      b_b=(data$data[[9]])[1],
-      gamma=(data$data[[10]])[1],
-      kn=(data$data[[11]])[1],
-      m_x=(data$data[[12]])[1],
-      var_x1=(data$data[[13]])[1],
-      var_x2=(data$data[[14]])[1],
-      var_e1=(data$data[[15]])[1],
-      var_e2=(data$data[[16]])[1],
-
-      cov_mat =(data$data[[17]]),
-      cov_mat_b =(data$data[[18]]),
-
-      x2=(data$data[[19]]),
-      x=(data$data[[20]]),
-      e2=(data$data[[21]]),
-      m_C =(data$data[[22]])[1],
-      var_C1 = (data$data[[23]])[1],
-      var_C2 =(data$data[[24]])[1],
-
-      C2=(data$data[[25]]),
-      C=(data$data[[26]]),
-      y=(data$data[[27]]),
-      x2D=(data$data[[28]])
-    )
-
-
-    data <-data1
-    #print(data)
-
-  }
-
+estimate_Bay_CV <- 
+  function(data) {
 
   J <- data$k
   n <- data$n
@@ -1099,7 +997,7 @@ estimate_Bay_CV <- function(data) {
 
     for (i in 1:data$kc) {
       var_res_gamma <- sum((data$y - C_tilde_mat[, i + 1] * gamma_all[i + 1])^2) / (data$kn - 2)
-      SE_gamma[i] <- sqrt(var_res_gamma / ((data$kn - 1) * var(C_tilde_mat[, i + 1])))
+      SE_gamma[i] <- sqrt(var_res_gamma / ((data$kn - 1) * stats::var(C_tilde_mat[, i + 1])))
     }
 
     gamma <- gamma_all[-1]
@@ -1136,6 +1034,19 @@ estimate_Bay_CV <- function(data) {
 
   tau_y2 <- (MOA - MOD) / n
   sigma_y2 <- MOD
+  
+  # truncate the estimated variances to avoid negatives
+  
+  #tau_x2 <- max(0, tau_x2)
+  #tau_y2 <- max(0, tau_y2)
+  
+  #sigma_x2 <- max(0, sigma_x2)
+  #sigma_y2 <- max(0, sigma_y2)
+  
+  # dummy to remember tau_x2 it was truncated -> no between-group variability
+  if (tau_x2==0){
+    truncated = 1
+  }
 
   #create Sigma_x matrix of covariances of x_ij, mean(x_j), mean(x)
 
@@ -1232,6 +1143,8 @@ estimate_Bay_CV <- function(data) {
 
   # Create diagonal matrix D_x
   D_x <- diag(D_x)
+ 
+  
 
   # Initialize V_yx matrix
   V_yx <- matrix(0, n * J + J + 1, n * J + J + 1)
@@ -1463,14 +1376,14 @@ estimate_Bay_CV <- function(data) {
   # L1 = S_x*V_x'*A*V_x*S_x  - diagonal -> gives eigenvalues of C_x, which we use
   # to calculate MSE:
 
-  S_x <- sqrt(D_x)
+  S_x <- sqrt(abs(D_x))
   t_v_x <-t(V_x)
   L1 <- S_x %*% t_v_x %*% A %*% V_x %*% S_x
 
   L1 <- diag(L1)
 
   L1 <- Re(L1)# could be complex insignificant tails, because of computer precision
-
+  
   for (i in 1:(n*J+J+1)){ # delete computer precision tails
     if (abs(L1[i])<0.0000001){
       L1[i] <- 0
@@ -1513,7 +1426,7 @@ estimate_Bay_CV <- function(data) {
   upper_left <- diag(nrow(D_yx))
   lower_right <- diag(nrow(D_yx))
 
-  pinv_S_x_S_y_D_yx <- pinv(S_x) %*% pinv(S_y) %*% D_yx
+  pinv_S_x_S_y_D_yx <- pracma::pinv(S_x) %*% pracma::pinv(S_y) %*% D_yx
 
 
   upper_right <- pinv_S_x_S_y_D_yx
@@ -1556,8 +1469,6 @@ estimate_Bay_CV <- function(data) {
   }
 
 
-
-
   # Use L1 and L2 and ML estimator of beta_b as coefficients for computing optimal MSE
 
   beta_b_ML <- tau_yx / tau_x2
@@ -1572,8 +1483,9 @@ estimate_Bay_CV <- function(data) {
 
   beta_b <- data$b2# real value of between parameter ##check if b_b is same as b2
 
-
-
+  # this is the case when between-group effect is not zero
+  if (is.finite(K_sum2) && is.finite(T_sum2)){
+    
   # MSE of ML estimated parameter beta_b_ML
 
   MSE_add <- (((K_sum2 * T_sum2)/ (T_sum1*(K_sum1-1))) - beta_b)^2 +
@@ -1583,13 +1495,31 @@ estimate_Bay_CV <- function(data) {
   #    K_sum1^4 * T_sum1^2 * (K_sum1+K_sum2-1)/ (K_sum2^3 * T_sum2^2 * (K_sum1-1)^2 * (K_sum1-2)); # original
 
 
-  # optimize MSE with beta_b_ML
+  # optimize MSE with beta_b_ML(old_version )
 
 
-  Tau02 <- kronecker(    matrix(1,  nrow = length(seq(0, 1, by = 0.01)), ncol = 1)   , t( matrix(seq(0.05, 10, by = 0.05), nrow = 1) )  )# restrict search interval of tau02 to 10
+  #Tau02 <- kronecker(    matrix(1,  nrow = length(seq(0, 1, by = 0.01)), ncol = 1)   , t( matrix(seq(0.05, 10, by = 0.05), nrow = 1) )  )# restrict search interval of tau02 to 10
 
-  W <-kronecker(t(matrix(seq(0, 1, by = 0.01), nrow=1)), matrix(1,nrow = length(seq(0.5, by = 0.05)), ncol=1))
+  #W <-kronecker(t(matrix(seq(0, 1, by = 0.01), nrow=1)), matrix(1,nrow = length(seq(0.5, by = 0.05)), ncol=1))
   ## recheck???
+  
+  # optimize MSE with beta_b_ML within 5*sigma search region from the distribution of tau_x2
+  
+  d_search = 5
+  
+  Tau02_min = max(0.01, tau_x2 - d_search * sqrt(K_sum1 * T_sum1^2))
+  
+  Tau02_max =  max(0.01, tau_x2 + d_search * sqrt(K_sum1 * T_sum1^2))
+  
+  Tau02_seq <- seq(Tau02_min, Tau02_max, by = (Tau02_max - Tau02_min)/100)
+  
+  W_seq <- seq(0, 1, by = 0.01)
+  
+  grid <- expand.grid(Tau02 = Tau02_seq, W = W_seq)
+  
+  Tau02 = grid$Tau02
+  
+  W = grid$W
 
   MSE_ML <- matrix(0, nrow = length(W), ncol = 1)
 
@@ -1681,7 +1611,28 @@ estimate_Bay_CV <- function(data) {
 
   SE_beta_Bay_ML <- abs((T_sum2 / (T_B_Bay_ML * (K_B_Bay_ML - 1))) * sqrt(abs((K_sum2 * (K_B_Bay_ML + K_sum2 - 1)) / (K_B_Bay_ML - 2))))
 
-
+  }
+  
+  # this is the case when L2 is zero, therefore tau_yx is also defined as zero ->
+  #-> no between-group effect, and K_sum2 and T_sum2 are NaN
+  else
+  {
+    MSE <- 1
+    MSE_ML <- 1
+    W <- 0
+    Tau02 <- 1
+    beta_b_Bay <- 0
+    beta_b_Bay_ML <- 0
+    MSE_beta_b_Bay <- 1
+    MSE_beta_b_Bay_ML <- 1
+    MSE_add <- 1
+    SE_beta_ML <- sqrt(abs((tau_y2 + sigma_y2 / n) / (J * tau_x2)))
+    SE_beta_Bay <- 1
+    SE_beta_Bay_ML <- 1
+    warning('Singularities in the between-group estimation')
+  }  
+  
+  
   #Bay <- 0.1
   Bay <- list()
   Bay$A <- A
@@ -1741,7 +1692,7 @@ estimate_Bay_CV <- function(data) {
 
 
 estimate_Bay_CV_SE_jackknife_individual <- function(data) {
-  library(pracma)
+ 
 
   # Original estimator calculation (to get initial results)
   original_result <- estimate_Bay_CV(data)
@@ -1754,7 +1705,7 @@ estimate_Bay_CV_SE_jackknife_individual <- function(data) {
   jackknife_beta_b_Bay_individual <- numeric(n)
   jackknife_beta_b_Bay_ML_individual <- numeric(n)
 
-  r = n # set up the number of replications for jackknife, r from 1 to n^J
+  r = min(n,50) # set up the number of replications for jackknife, r from 1 to n^J
   # Jackknife by deleting one individual from each group simultaneously
   for (i in 1:r) {
     # Generate J random indices (one for each group) from 1 to n
