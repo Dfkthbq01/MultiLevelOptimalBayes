@@ -78,9 +78,9 @@ summary(result_iris)
 # Example 2: usage with slightly unbalanced ChickWeight dataset
 
 result_ChickWeight <- mlob(
-weight ~ Time, 
+weight ~ Diet, 
 data = ChickWeight, 
-group = 'Diet', 
+group = 'Time', 
 punish.coeff = 1.5, 
 jackknife = FALSE)
 
