@@ -95,6 +95,9 @@
 #' @export
 mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, jackknife = FALSE, punish.coeff = 2, ...) {
 
+  # Save the name of dataframe for displaying the output
+  data_name  <- deparse(substitute(data))
+  
   # Ensure data is a data frame
   if (!is.data.frame(data)) {
     warning("The 'data' argument is not a data frame. Converting to data frame.")
@@ -532,7 +535,7 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
   }
 
   # Create the dynamic call_info string
-  call_info <- paste0("mlob(", deparse(formula), ", data = data, group = ", data_CV$k)
+  call_info <- paste0("mlob(", deparse(formula), ", data = ", data_name, ", group = ", group)
 
   # Add balancing.limit if it is not default value
   if (!missing(balancing.limit) && balancing.limit != 0.2) {
@@ -765,6 +768,22 @@ summary.mlob_result <- function(object, ...) {
 
   # Add significance codes
   cat("\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n")
+  
+  
+  # Compute how many % st. err. of regularized Bayesian is smaller than sr. err. of ML
+  pct_smaller <- object$Standard_Error_ML[1] / object$Standard_Error[1] * 100
+  
+  # Display the note about trustworthiness of regularized Bayesian vs. ML
+  cat(
+    "\nNote:\n",
+    sprintf("  Optimized Std. Err. is %.1f%% smaller compared to the unoptimized ML Std. Err.\n",
+            pct_smaller),
+    "  The unoptimized ML estimator may differ significantly from the optimized regularized Bayesian estimator.\n",
+    "  Therefore, we strongly recommend against reporting or interpreting ML estimation results.\n",
+    "  Always rely on optimized estimates, as they provide more accurate and reliable insights.\n",
+    "  For further methodological details, refer to Dashuk et al. (2025).\n",
+    sep = ""
+  )
 
 }
 
