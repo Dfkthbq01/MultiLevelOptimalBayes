@@ -1,11 +1,11 @@
 Package: MultiLevelOptimalBayes
 Type: Package
 Title: Regularized Bayesian Regression for Small-Sample Two-Level Latent Variable Models
-Version: 0.0.1.2
+Version: 0.0.1.3
 Authors@R: c(person("Valerii", "Dashuk", role = c("aut", "cre"), email = "vadashuk@gmail.com"),
     person("Binayak", "Timilsina", role = "aut", email = "binayak.timilsina001@gmail.com"),
-    person("Martin", "Hecht", role = "aut"),
-    person("Steffen", "Zitzmann", role = "aut")
+    person("Martin", "Hecht", role = "aut",email = "martin.hecht@hsu-hh.de"),
+    person("Steffen", "Zitzmann", role = "aut",email = "steffen.zitzmann@medicalschool-hamburg.de")
   )
 Author: Valerii Dashuk [aut, cre], Binayak Timilsina [aut], Martin Hecht [aut], Steffen Zitzmann [aut]
 Maintainer: Valerii Dashuk <vadashuk@gmail.com>
@@ -23,3 +23,9 @@ Depends: R (>= 4.1.0)
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+VignetteBuilder: knitr
