@@ -1,9 +1,15 @@
 #' Multi-Level Optimal Bayes Function (MLOB)
 #'
 #'
-#' MultiLevelOptimalBayes (MLOB) is specifically designed for small-sample, two-level latent variable models, which are frequently used in fields such as psychology, education, and other disciplines that involve hierarchical data structures.
-#' This function estimates the between-group coefficient beta_b in a  multilevel latent variable model with covariates, using regularized Bayesian estimator.
-#' It is designed for scenarios where data is organized into multiple groups. When the data is unbalanced, it optimally balances the data across these groups.
+#' Implements a regularized Bayesian approach that optimizes
+#' the estimation of between-group coefficients by minimizing 
+#' Mean Squared Error (MSE), balancing both variance and bias.
+#' This method provides more reliable estimates 
+#' in scenarios with limited data, offering a robust solution for 
+#' accurate parameter estimation in multilevel models. The package is designed for researchers 
+#' in psychology, education, and related fields who face challenges in 
+#' estimating between-group effects in two-level latent variable models, particularly
+#' in scenarios with small sample sizes and low intraclass correlation coefficients. 
 #'
 #' @param formula an object of class "\link{formula}" (or one that can be coerced to that class): a symbolic description of the model to be fitted. Formula specifies the model (e.g., \code{Y ~ X + C...}), where Y is the dependent variable, X is the context variable, which is the focus of most applications of the model  (always included), and C includes all additional covariates.
 #' @param data a data frame (or object converted by \link{as.data.frame} to a data frame) containing the variables referenced in the formula. All variables used in the model, including the dependent variable, context variable, covariates, and grouping variable must be present in this data frame.
@@ -44,11 +50,11 @@
 #' Steffen Zitzmann
 #' 
 #' @references
-#' Dashuk, V., Hecht, M., Luedtke, O., Robitzsch, A., & Zitzmann, S. (2024). An Optimally Regularized Estimator of Multilevel Latent Variable Models with Improved MSE Performance. \url{https://doi.org/10.13140/RG.2.2.18148.39048}
+#' Dashuk, V., Hecht, M., Luedtke, O., Robitzsch, A., & Zitzmann, S. (2024). \doi{10.13140/RG.2.2.18148.39048}
 #' 
-#' Dashuk, V., Hecht, M., Luedtke, O., Robitzsch, A., & Zitzmann, S. (2024). Estimating Context Effects in Small Samples, Controlling for Covariates: An Optimally Regularized Bayesian Estimator for Multilevel Models: Manuscript submitted for publication. \url{http://dx.doi.org/10.13140/RG.2.2.34350.01604}
+#' Dashuk, V., Hecht, M., Luedtke, O., Robitzsch, A., & Zitzmann, S. (2024). \doi{10.13140/RG.2.2.34350.01604}
 #' 
-#' Luedtke, O., Marsh, H. W., Robitzsch, A., Trautwein, U., Asparouhov, T., & Muthen, B. (2008). The multilevel latent covariate model: a new, more reliable approach to group-level effects in contextual studies. \emph{Psychological methods}, 13(3):203-229. \url{https://doi.org/10.1037/a0012869}
+#' Luedtke, O., Marsh, H. W., Robitzsch, A., Trautwein, U., Asparouhov, T., & Muthen, B. (2008). \doi{10.1037/a0012869}
 #'
 #' @examples
 #' 
@@ -431,7 +437,6 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
   }
   
   
-  
   data_CV$b_b = ML$beta_b_ML_CV # dummy real value of beta_b
   
   # Call estimate_Bay_CV function with data_CV
@@ -439,8 +444,14 @@ mlob <- function(formula, data, group, balancing.limit=0.2, conf.level = 0.05, j
   
   # recalculate SE of Bayesian estimator with jackknife if a
   if (jackknife == TRUE){
-    Bay_jackknife <- estimate_Bay_CV_SE_jackknife_individual(data_CV)
-    Bay$SE_beta_Bay <-Bay_jackknife$SE_beta_Bay_ML_jackknife_individual
+    Bay_jackknife    <- estimate_Bay_CV_SE_jackknife_individual(data_CV)
+    Bay$SE_beta_Bay  <- Bay_jackknife$SE_beta_Bay_ML_jackknife_individual
+    # Bay$SE_beta_ML   <- Bay_jackknife$SE_beta_ML_jackknife_individual # open in case jackknife for ML needed
+    # If there were any gamma‐covariates, copy over their SEs
+    if (!is.null(Bay_jackknife$SE_gamma_jackknife_individual)) {
+      Bay$SE_gamma   <- Bay_jackknife$SE_gamma_jackknife_individual
+    }
+    
   }
 
   # Generate the result output
@@ -770,33 +781,51 @@ summary.mlob_result <- function(object, ...) {
   cat("\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n")
   
   
-  # Compute how many times st. err. of regularized Bayesian is smaller than sr. err. of ML
-  se_ratio <- object$Standard_Error_ML[1] / object$Standard_Error[1] 
+  # Extract first SE of ML and of regularized Bayes (or NA if missing)
+  se_ml  <- if (!is.null(object$Standard_Error_ML) &&
+                length(object$Standard_Error_ML) >= 1) object$Standard_Error_ML[[1]] else NA_real_
+  se_reg <- if (!is.null(object$Standard_Error) &&
+                length(object$Standard_Error) >= 1) object$Standard_Error[[1]] else NA_real_
   
-  # Display the note about trustworthiness of regularized Bayesian vs. ML
+  # Compute ratio (will be NaN/Inf if se_reg is zero or NA)
+  se_ratio <- se_ml / se_reg
+  
+  # Display the note header
   cat("\nNote:\n")
-
-  # Display the appropriate note based on standard error comparison
-  # If the ratio between standard errors is <= times 1.1, treat them as similarly accurate
   
-  if (se_ratio <= 1.1) {
-    cat("  The standard error from unoptimized ML estimation is approximately the same \n",
-        "  as the standard error obtained through our optimization procedure,\n",
-        "  meaning that both approaches yield similarly accurate estimates.\n", sep = "")
+  # Three‐way branching without any stop()
+  if (!is.finite(se_ratio)) {
+    
+    # Case 1: missing, infinite, zero, etc.
+    cat(
+      "  The standard errors cannot be compared because one or both are missing, zero, NA, NaN, or infinite.\n",
+      sep = ""
+    )
+    
+  } else if (se_ratio <= 1.1) {
+    
+    # Case 2: roughly equal
+    cat(
+      "  The standard error from unoptimized ML estimation is approximately the same as the standard error obtained through our optimization procedure,\n",
+      "  meaning that both approaches yield similarly accurate estimates.\n",
+      sep = ""
+    )
     
   } else {
+    
+    # Case 3: ML SE substantially larger
     cat(
-      sprintf("    The standard error from unoptimized ML estimation is about %.1f times  larger \n", 
-              se_ratio),
-      "  than the standard error obtained through our optimization procedure, \n",
-      "  meaning that the optimized estimates are more accurate. \n", 
-      "    Concerning the estimates themselves, the unoptimized ML estimates may differ \n", 
-      "  greatly from the optimized estimates and should not be reported. \n",
-      "    As the optimized estimates are always at least as accurate as \n", 
-      "  the unoptimized ML estimates, please use them and their corresponding \n", 
-      "  standard errors (first table of output) for interpretation and reporting. \n",
-      "    For more information, see Dashuk et al. (2025). \n",
-      sep = "")
+      sprintf(
+        "  The standard error from unoptimized ML estimation is about %.1f%% larger than the standard error obtained through our optimization procedure,\n",
+        (se_ratio - 1) * 100
+      ),
+      "  meaning that the optimized estimates are more accurate.\n",
+      "  Concerning the estimates themselves, the unoptimized ML estimates may differ greatly from the optimized estimates and should not be reported.\n",
+      "  As the optimized estimates are always at least as accurate as the unoptimized ML estimates,\n",
+      "  please use them and their corresponding standard errors (first table of output) for interpretation and reporting.\n",
+      "  For more information, see Dashuk et al. (2025).\n",
+      sep = ""
+    )
   }
 }
 
@@ -1732,14 +1761,22 @@ estimate_Bay_CV_SE_jackknife_individual <- function(data) {
   # Initialize parameters
   n <- data$n
   J <- data$k
+  r <- min(n,50) # set up the number of replications for jackknife, r from 1 to n^J
 
   # Initialize vectors to store jackknife estimates for individual deletion
-  jackknife_beta_b_Bay_individual <- numeric(n)
-  jackknife_beta_b_Bay_ML_individual <- numeric(n)
+  jackknife_beta_b_Bay_individual <- numeric(r)
+  jackknife_beta_b_Bay_ML_individual <- numeric(r)
+  jackknife_beta_b_ML_individual <- numeric(r)
+  
+  # only if gamma‐covariates present
+  has_gamma <- ("kc" %in% names(data) && data$kc > 0)
+  if (has_gamma) {
+    p_gamma <- data$kc
+    jackknife_gamma_individual <- matrix(NA, nrow = r, ncol = p_gamma)
+  }
 
-  r = min(n,50) # set up the number of replications for jackknife, r from 1 to n^J
   # Jackknife by deleting one individual from each group simultaneously
-  for (i in 1:r) {
+  for (i in seq_len(r)) {
     # Generate J random indices (one for each group) from 1 to n
     random_indices <- sample(1:n, J, replace = TRUE)
 
@@ -1775,24 +1812,64 @@ estimate_Bay_CV_SE_jackknife_individual <- function(data) {
     # Store jackknife estimates
     jackknife_beta_b_Bay_individual[i] <- result_jackknife$beta_b_Bay
     jackknife_beta_b_Bay_ML_individual[i] <- result_jackknife$beta_b_Bay_ML
+    jackknife_beta_b_ML_individual[i] <- result_jackknife$beta_b_ML
+    
+    if (has_gamma) {
+      # assume res_j$gamma is a length‐kc numeric vector
+      jackknife_gamma_individual[i, ] <- result_jackknife$gamma
+    }
+    
   }
 
   # Calculate jackknife means for individual deletion
   jackknife_mean_beta_b_Bay_individual <- mean(jackknife_beta_b_Bay_individual)
   jackknife_mean_beta_b_Bay_ML_individual <- mean(jackknife_beta_b_Bay_ML_individual)
+  jackknife_mean_beta_b_ML_individual <- mean(jackknife_beta_b_ML_individual)
+  if (has_gamma) {
+    jackknife_mean_gamma_individual <- colMeans(jackknife_gamma_individual)
+  }
 
   # Calculate jackknife standard errors for individual deletion
-  SE_beta_Bay_jackknife_individual <- sqrt((n - 1) / n * sum((jackknife_beta_b_Bay_individual - jackknife_mean_beta_b_Bay_individual)^2))
-  SE_beta_Bay_ML_jackknife_individual <- sqrt((n - 1) / n * sum((jackknife_beta_b_Bay_ML_individual - jackknife_mean_beta_b_Bay_ML_individual)^2))
-
+  
+  SE <- function(vals, m) {
+    sqrt((n - 1) / n * sum((vals - m)^2))
+  }
+  
+  SE_beta_Bay_jackknife_individual       <- SE(jackknife_beta_b_Bay_individual, jackknife_mean_beta_b_Bay_individual)
+  SE_beta_Bay_ML_jackknife_individual    <- SE(jackknife_beta_b_Bay_ML_individual, jackknife_mean_beta_b_Bay_ML_individual)
+  SE_beta_ML_jackknife_individual        <- SE(jackknife_beta_b_ML_individual, jackknife_mean_beta_b_ML_individual)
+  
+  if (has_gamma) {
+    
+    SE_gamma_jackknife_individual <- sapply(
+      seq_len(p_gamma),
+      function(j) {
+        SE(jackknife_gamma_individual[, j], m = jackknife_mean_gamma_individual[j])
+      }
+    )
+    
+    names(SE_gamma_jackknife_individual) <- paste0("SE_gamma_", seq_len(p_gamma))
+  }
+  
   # Output updated results with jackknife standard errors
-  list(
-    beta_b_Bay = original_result$beta_b_Bay,
-    beta_b_Bay_ML = original_result$beta_b_Bay_ML,
-    SE_beta_Bay_jackknife_individual = SE_beta_Bay_jackknife_individual,
-    SE_beta_Bay_ML_jackknife_individual = SE_beta_Bay_ML_jackknife_individual
-    #original_result = original_result
+  
+  # 7. Return everything
+  out <- list(
+    beta_b_Bay                          = original_result$beta_b_Bay,
+    beta_b_Bay_ML                       = original_result$beta_b_Bay_ML,
+    beta_b_ML                           = original_result$beta_b_ML,
+    SE_beta_Bay_jackknife_individual    = SE_beta_Bay_jackknife_individual,
+    SE_beta_Bay_ML_jackknife_individual = SE_beta_Bay_ML_jackknife_individual,
+    SE_beta_ML_jackknife_individual     = SE_beta_ML_jackknife_individual
   )
+  
+  if (has_gamma) {
+    out$gamma                           <- original_result$gamma
+    out$SE_gamma_jackknife_individual   <- SE_gamma_jackknife_individual
+  }
+  
+  out
+  
 }
 
 # Example usage:

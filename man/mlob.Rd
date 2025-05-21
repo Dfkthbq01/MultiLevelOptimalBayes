@@ -36,9 +36,15 @@ mlob(
 A list containing the results of the regularized Bayesian estimation, which includes the model formula,dependent and context variables,and other relevant details from the analysis.
 }
 \description{
-MultiLevelOptimalBayes (MLOB) is specifically designed for small-sample, two-level latent variable models, which are frequently used in fields such as psychology, education, and other disciplines that involve hierarchical data structures.
-This function estimates the between-group coefficient beta_b in a  multilevel latent variable model with covariates, using regularized Bayesian estimator.
-It is designed for scenarios where data is organized into multiple groups. When the data is unbalanced, it optimally balances the data across these groups.
+Implements a regularized Bayesian approach that optimizes
+the estimation of between-group coefficients by minimizing 
+Mean Squared Error (MSE), balancing both variance and bias.
+This method provides more reliable estimates 
+in scenarios with limited data, offering a robust solution for 
+accurate parameter estimation in multilevel models. The package is designed for researchers 
+in psychology, education, and related fields who face challenges in 
+estimating between-group effects in two-level latent variable models, particularly
+in scenarios with small sample sizes and low intraclass correlation coefficients.
 }
 \details{
 This function also verifies whether the data is balanced (i.e., whether each group contains the same number of individuals). If the data is unbalanced, the balancing procedure
@@ -105,11 +111,11 @@ summary(result_mtcars)
 
 }
 \references{
-Dashuk, V., Hecht, M., Luedtke, O., Robitzsch, A., & Zitzmann, S. (2024). An Optimally Regularized Estimator of Multilevel Latent Variable Models with Improved MSE Performance. \url{https://doi.org/10.13140/RG.2.2.18148.39048}
+Dashuk, V., Hecht, M., Luedtke, O., Robitzsch, A., & Zitzmann, S. (2024). \doi{10.13140/RG.2.2.18148.39048}
 
-Dashuk, V., Hecht, M., Luedtke, O., Robitzsch, A., & Zitzmann, S. (2024). Estimating Context Effects in Small Samples, Controlling for Covariates: An Optimally Regularized Bayesian Estimator for Multilevel Models: Manuscript submitted for publication. \url{http://dx.doi.org/10.13140/RG.2.2.34350.01604}
+Dashuk, V., Hecht, M., Luedtke, O., Robitzsch, A., & Zitzmann, S. (2024). \doi{10.13140/RG.2.2.34350.01604}
 
-Luedtke, O., Marsh, H. W., Robitzsch, A., Trautwein, U., Asparouhov, T., & Muthen, B. (2008). The multilevel latent covariate model: a new, more reliable approach to group-level effects in contextual studies. \emph{Psychological methods}, 13(3):203-229. \url{https://doi.org/10.1037/a0012869}
+Luedtke, O., Marsh, H. W., Robitzsch, A., Trautwein, U., Asparouhov, T., & Muthen, B. (2008). \doi{10.1037/a0012869}
 }
 \author{
 Valerii Dashuk \email{vadashuk@gmail.com},
